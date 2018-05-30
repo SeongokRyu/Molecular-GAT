@@ -13,7 +13,7 @@ import smilesToGraph_explicit
 np.set_printoptions(precision=3)
 
 def loadInputs(FLAGS, idx, modelName, unitLen):
-    if(FLAGS.validation_database == 'qm9'):
+    if(FLAGS.validation_database == 'QM9'):
         adj1 = np.load('./Data/'+FLAGS.validation_database+'/adj_explicit/'+str(idx)+'.npy')
         features = np.load('./Data/'+FLAGS.validation_database+'/features_explicit/'+str(idx)+'.npy')
     else:
@@ -23,53 +23,6 @@ def loadInputs(FLAGS, idx, modelName, unitLen):
     retOutput = (np.load('./Data/'+FLAGS.validation_database+'/'+FLAGS.output+'.npy')[idx*unitLen:(idx+1)*unitLen])
 
     return retInput, retOutput
-
-def getLatent(model, FLAGS, modelName):
-    batch_size = FLAGS.batch_size
-    total_st = time.time()
-    model.restore("./save/"+modelName+".ckpt-450000")
-
-    S = np.load("./Data/"+FLAGS.validation_database+'/smiles.txt')
-    num_valid = S.shape[0]
-
-    S = list(S)
-    A = list(A)
-    X = list(X)
-
-    S_zero = np.zeros(120)
-    A_zero = np.zeros((50,50))
-    X_zero = np.zeros((50,28))
-
-    batch_size = FLAGS.batch_size
-    emptyNum = len(S)%batch_size
-    print ("Start Feature Extraction XD")
-    for i in range(0,batch_size-emptyNum):
-        A.append(A_zero)
-        X.append(X_zero)
-        S.append(S_zero)
-
-    A_batch = np.asarray(A)
-    X_batch = np.asarray(X)
-    S_batch = np.asarray(S)
-    num_batch = int(S_batch.shape[0]/batch_size)
-
-    latent = []
-    adjacency = []
-    for i in range(num_batch):
-        idx = np.arange(batch_size) + i*batch_size
-        Z = model.get_latent_vector(A_batch[idx], X_batch[idx])
-        _A = model.get_adjacency(A_batch[idx], X_batch[idx])
-        for z in Z:
-            latent.append(z)
-        for _a in _A:
-            adjacency.append(_a)
-    latent = np.asarray(latent)
-    adjacency = np.asarray(adjacency)
-    np.save('./latent/'+modelName+'_'+FLAGS.validation_database+'.npy', latent)
-    np.save('./adjacency/'+modelName+'_'+FLAGS.validation_database+'.npy', adjacency)
-
-    total_et = time.time()
-    print ("Finish feature extraction! Total required time for extraction : ", (total_et-total_st))
 
 def predict(model, FLAGS, modelName):
     batch_size = FLAGS.batch_size
@@ -110,6 +63,7 @@ def predict(model, FLAGS, modelName):
     print ("Finish feature extraction! Total required time for extraction : ", (total_et-total_st))
 
 def getLatent_DB(model, FLAGS, modelName):
+    ### Save Node vectors and Latent vectors ###
     batch_size = FLAGS.batch_size
     total_st = time.time()
     unitLen = FLAGS.unitLen
@@ -175,6 +129,54 @@ def getLatent_DB(model, FLAGS, modelName):
     total_et = time.time()
     print ("Finish feature extraction! Total required time for extraction : ", (total_et-total_st))
 
+def getLatent(model, FLAGS, modelName):
+    ### Save Node vectors and Latent vectors ###
+    batch_size = FLAGS.batch_size
+    total_st = time.time()
+    model.restore("./save/"+modelName+".ckpt-450000")
+
+    S = np.load("./Data/"+FLAGS.validation_database+'/smiles.txt')
+    num_valid = S.shape[0]
+
+    S = list(S)
+    A = list(A)
+    X = list(X)
+
+    S_zero = np.zeros(120)
+    A_zero = np.zeros((50,50))
+    X_zero = np.zeros((50,28))
+
+    batch_size = FLAGS.batch_size
+    emptyNum = len(S)%batch_size
+    print ("Start Feature Extraction XD")
+    for i in range(0,batch_size-emptyNum):
+        A.append(A_zero)
+        X.append(X_zero)
+        S.append(S_zero)
+
+    A_batch = np.asarray(A)
+    X_batch = np.asarray(X)
+    S_batch = np.asarray(S)
+    num_batch = int(S_batch.shape[0]/batch_size)
+
+    latent = []
+    adjacency = []
+    for i in range(num_batch):
+        idx = np.arange(batch_size) + i*batch_size
+        Z = model.get_latent_vector(A_batch[idx], X_batch[idx])
+        _A = model.get_adjacency(A_batch[idx], X_batch[idx])
+        for z in Z:
+            latent.append(z)
+        for _a in _A:
+            adjacency.append(_a)
+    latent = np.asarray(latent)
+    adjacency = np.asarray(adjacency)
+    np.save('./latent/'+modelName+'_'+FLAGS.validation_database+'.npy', latent)
+    np.save('./adjacency/'+modelName+'_'+FLAGS.validation_database+'.npy', adjacency)
+
+    total_et = time.time()
+    print ("Finish feature extraction! Total required time for extraction : ", (total_et-total_st))
+
 def test(model, FLAGS, modelName):
     ### For test property ###
     batch_size = FLAGS.batch_size
@@ -218,11 +220,11 @@ def test(model, FLAGS, modelName):
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('model', 'GAT', 'Options : AE, AAE, GAN, predictor') 
-flags.DEFINE_string('output', 'AE', 'Options : graph, smiles, property; logP, TPSA, ...')
-flags.DEFINE_string('loss_type', 'MSE', 'Options : MSE, CrossEntropy, Hinge')  ### Using MSE or Hinge for predictor 
-flags.DEFINE_string('database', 'qm9', 'Options : ZINC, ZINC2')  
-flags.DEFINE_string('validation_database', 'AE_lowest', 'Options : ZINC, ZINC2, pl3ka')  ### Using MSE or Hinge for predictor 
+flags.DEFINE_string('model', 'GAT', 'Options : GAT, GCN') 
+flags.DEFINE_string('output', 'AE', 'Options : logP, TPSA, ...')
+flags.DEFINE_string('loss_type', 'MSE', 'Options : MSE')  ### Using MSE or Hinge for predictor 
+flags.DEFINE_string('database', 'qm9', 'Options : ZINC, QM9, CEP')  
+flags.DEFINE_string('validation_database', 'AE_lowest', 'Options : ZINC, QM9, CEP')  ### Using MSE or Hinge for predictor 
 flags.DEFINE_string('optimizer', 'Adam', 'Options : ')  ### Using MSE or Hinge for predictor 
 flags.DEFINE_integer('latent_dim', 512, 'Dimension of a latent vector for autoencoder')
 flags.DEFINE_integer('epoch_size', 100, 'Epoch size')

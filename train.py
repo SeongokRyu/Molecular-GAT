@@ -10,10 +10,14 @@ import tensorflow as tf
 np.set_printoptions(precision=3)
 
 def loadInputs(FLAGS, idx, modelName, unitLen):
-    adj = np.load('./Data/'+FLAGS.database+'/adj/'+str(idx)+'.npy')
-    features = np.load('./Data/'+FLAGS.database+'/features/'+str(idx)+'.npy')
-    retInput = (adj, features)
-    retOutput = (np.load('./Data/'+FLAGS.database+'/'+FLAGS.output+'.npy')[idx*unitLen:(idx+1)*unitLen]).astype(float)
+    if(FLAGS.validation_database == 'QM9'):
+        adj1 = np.load('./Data/'+FLAGS.validation_database+'/adj_explicit/'+str(idx)+'.npy')
+        features = np.load('./Data/'+FLAGS.validation_database+'/features_explicit/'+str(idx)+'.npy')
+    else:
+        adj1 = np.load('./Data/'+FLAGS.validation_database+'/adj/'+str(idx)+'.npy')
+        features = np.load('./Data/'+FLAGS.validation_database+'/features/'+str(idx)+'.npy')
+    retInput = (adj1, features)
+    retOutput = (np.load('./Data/'+FLAGS.validation_database+'/'+FLAGS.output+'.npy')[idx*unitLen:(idx+1)*unitLen])
 
     return retInput, retOutput
 
@@ -76,10 +80,10 @@ def training(model, FLAGS, modelName):
 # Set FLAGS for environment setting
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('model', 'GAT', '') 
+flags.DEFINE_string('model', 'GAT', 'Options : GAT, GCN') 
 flags.DEFINE_string('output', 'logP', '')
-flags.DEFINE_string('loss_type', 'MSE', 'Options : MSE, CrossEntropy, Hinge')  ### Using MSE or Hinge for predictor 
-flags.DEFINE_string('database', 'ZINC', 'Options : ZINC, ZINC2')  ### Using MSE or Hinge for predictor 
+flags.DEFINE_string('loss_type', 'MSE', 'Options : MSE')  ### Using MSE or Hinge for predictor 
+flags.DEFINE_string('database', 'ZINC', 'Options : ZINC, QM9, ZINC')  
 flags.DEFINE_string('optimizer', 'Adam', 'Options : Adam, SGD, RMSProp') 
 flags.DEFINE_integer('latent_dim', 512, 'Dimension of a latent vector for autoencoder')
 flags.DEFINE_integer('epoch_size', 100, 'Epoch size')
